@@ -1,0 +1,77 @@
+.vector-controls {
+    text-align: left;
+    margin: 5px;
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    background-color: #333;
+    width: 200px;
+    border: #555 solid 2px;
+    border-radius: 5px;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+    max-height: 500px;
+}
+
+.vector-controls.collapsed {
+    max-height: 35px; /* Adjust this to fit just the header when collapsed */
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.carot {
+    font-size: 1em;
+}
+
+.controls-content {
+    padding: 5px;
+    transition: opacity 0.5s ease;
+}
+
+.vector-controls.collapsed .controls-content {
+    opacity: 0;
+    pointer-events: none; /* Disable interaction when collapsed */
+}
+
+.control {
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 500px; /* Adjust as necessary */
+    margin: 0 auto; /* Center the controls container */
+}
+
+label {
+    /* display: inline-block; */
+    margin-bottom: 3px;
+    font-size: 12px;
+}
+
+input[type="range"] {
+    /* flex: 3; */
+    width: 120px;
+    margin-left: auto;
+}
+
+.preview {
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    padding: 20px;
+    background: #f9f9f9;
+}
+
+#ControlsHeader {
+    font-size: 16px;
+}
+
+button {
+    width: 70px;
+    height: 20px;
+}
