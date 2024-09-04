@@ -7,5 +7,5 @@ void main()
 {
     vec2 uv = gl_FragCoord.xy / uResolution;
     vec4 renderTarget = texture2D(uWeightsTarget, uv);
-    gl_FragColor = renderTarget * vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = renderTarget;
 }

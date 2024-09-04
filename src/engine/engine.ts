@@ -176,12 +176,6 @@ class Engine {
         // Define Uniforms
         let edgeUniforms: Uniform[] = [
             {
-                name: 'uTime',
-                val: this.getTime(),
-                type: 'float',
-                location: null
-            },
-            {
                 name: 'uResolution',
                 val: [canvas.width, canvas.height],
                 type: 'vec2',
@@ -211,12 +205,6 @@ class Engine {
 
         // Define Uniforms
         let weightsUniforms: Uniform[] = [
-            {
-                name: 'uTime',
-                val: this.getTime(),
-                type: 'float',
-                location: null
-            },
             {
                 name: 'uResolution',
                 val: [canvas.width, canvas.height],
@@ -385,8 +373,10 @@ class Engine {
         }
 
         // Update Uniforms
-        setUniform(gl, getUniform(this.packages, pck.name, 'uTime')); 
-        if (pck.name == 'edge') {
+        if (pck.name == 'background') {
+            setUniform(gl, getUniform(this.packages, pck.name, 'uTime')); 
+        }
+        else if (pck.name == 'edge') {
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, this.bgndRenderTarget!.texture);
             gl.uniform1i(gl.getUniformLocation(pck.program, "uRenderTexture"), 0);
