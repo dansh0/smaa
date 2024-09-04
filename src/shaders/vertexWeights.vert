@@ -1,6 +1,6 @@
 precision highp float;
 
-#define SMAA_MAX_SEARCH_STEPS 8
+#define SMAA_MAX_SEARCH_STEPS 16
 
 attribute vec2 aPosition;
 uniform vec2 uResolution;

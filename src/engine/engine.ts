@@ -34,6 +34,7 @@ class Engine {
     areaImage: HTMLImageElement;
     searchImage: HTMLImageElement;
     imgLoadCount: number = 0;
+    smaaActive: boolean = true;
 
     constructor(canvas: HTMLCanvasElement, setFPS: Dispatch<SetStateAction<number>>) {
         this.packages = [];
@@ -289,6 +290,8 @@ class Engine {
             updatePrograms.forEach((programName) => {
                 let uResolution = getUniform(this.packages, programName, 'uResolution');
                 uResolution.val = [canvas.width, canvas.height];
+                let packageIndex = this.packages.map(pck => pck.name).indexOf(programName);
+                gl.useProgram(this.packages[packageIndex].program);
                 setUniform(this.gl, uResolution);
             });
         }
@@ -319,11 +322,29 @@ class Engine {
         let time = this.getTime()/1000; // update uTime
         let uTime = getUniform(this.packages, 'background', 'uTime');
         uTime.val = time;
+
+        // turn on and off
+        if (time % 10 < 5) {
+            this.smaaActive = true;
+        } else {
+            this.smaaActive = false;
+        }
+        let backgroundIndex = this.packages.map(pck => pck.name).indexOf('background');
+        let edgeIndex = this.packages.map(pck => pck.name).indexOf('edge');
+        let weightsIndex = this.packages.map(pck => pck.name).indexOf('weights');
+        let blendIndex = this.packages.map(pck => pck.name).indexOf('blend');
+        if (this.smaaActive) {
+            this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
+            this.packages[edgeIndex].active = true;
+            this.packages[weightsIndex].active = true;
+            this.packages[blendIndex].active = true;
+        } else {
+            this.packages[backgroundIndex].renderTarget = null;
+            this.packages[edgeIndex].active = false;
+            this.packages[weightsIndex].active = false;
+            this.packages[blendIndex].active = false;
+        }
             
-        // let backgroundIndex = this.packages.map(pck => pck.name).indexOf('background');
-        // let edgeIndex = this.packages.map(pck => pck.name).indexOf('edge');
-        // let weightsIndex = this.packages.map(pck => pck.name).indexOf('weights');
-        // let blendIndex = this.packages.map(pck => pck.name).indexOf('blend');
         
         // Uniform References
         // let uVector = getUniform(this.packages, 'effect', 'uVector');
@@ -396,6 +417,9 @@ class Engine {
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, this.weightsRenderTarget!.texture);
             gl.uniform1i(gl.getUniformLocation(pck.program, "uWeightsTexture"), 0);
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, this.bgndRenderTarget!.texture);
+            gl.uniform1i(gl.getUniformLocation(pck.program, "uRenderTexture"), 1);
         }
 
         // Draw
