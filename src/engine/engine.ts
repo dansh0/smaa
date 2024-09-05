@@ -78,7 +78,7 @@ class Engine {
         const canvas = this.canvas;
 
         // Scale to screen size (windows scale)
-        const deviceScaling = false;
+        const deviceScaling = true;
         const deviceScaleRatio = (deviceScaling) ? window.devicePixelRatio : 1; 
         
         // Check Null
@@ -331,11 +331,11 @@ class Engine {
         let debug = false
         if (!debug) {
             // turn on and off
-            if (time % 10 < 5) {
-                this.smaaActive = true;
-            } else {
-                this.smaaActive = false;
-            }
+            // if (time % 10 < 5) {
+            //     this.smaaActive = true;
+            // } else {
+            //     this.smaaActive = false;
+            // }
             if (this.smaaActive) {
                 this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
                 this.packages[edgeIndex].active = true;
@@ -456,9 +456,7 @@ class Engine {
     }
 
     updatePosition(floatVar1: number, floatVar2: number, vector: Vec3): void {
-       this.vector = vector;
-       this.floatVar1 = floatVar1;
-       this.floatVar2 = floatVar2;
+       this.smaaActive = !!+floatVar1;
     }
 
     updateFPS(): void {

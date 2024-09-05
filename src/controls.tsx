@@ -42,7 +42,7 @@ const Controls: React.FC<ControlsProps> = (props) => {
                 <span className="carot">{isCollapsed ? '▲' : '▼'}</span>
             </div>
             <div className="controls-content">
-                <div className="control">
+                {/* <div className="control">
                     <label>X: {posProps.vector.x}</label>
                     <input
                         type="range"
@@ -77,8 +77,8 @@ const Controls: React.FC<ControlsProps> = (props) => {
                         value={posProps.vector.z}
                         onChange={handleSliderChange('z')}
                     />
-                </div>
-                <div className="control">
+                </div> */}
+                {/* <div className="control">
                     <label>Var 1: {posProps.floatVar1}</label>
                     <input
                         type="range"
@@ -91,8 +91,21 @@ const Controls: React.FC<ControlsProps> = (props) => {
                             (event) => { posProps.setFloatVar1(parseFloat(event.target.value)); }
                         }
                     />
-                </div>
+                </div> */}
                 <div className="control">
+                    <label>
+                        SMAA Active
+                    </label>
+                    <input
+                        type="checkbox"
+                        id="floatVar1"
+                        checked={posProps.floatVar1 === 1}
+                        onChange={() => {
+                        posProps.setFloatVar1(posProps.floatVar1 === 1 ? 0 : 1);
+                        }}
+                    />
+                </div>
+                {/* <div className="control">
                     <label>Var 2: {posProps.floatVar2}</label>
                     <input
                         type="range"
@@ -105,7 +118,7 @@ const Controls: React.FC<ControlsProps> = (props) => {
                             (event) => { posProps.setFloatVar2(parseFloat(event.target.value)); }
                         }
                     />
-                </div>
+                </div> */}
                 <h5>Stats</h5>
                 <div className="fps">
                     <h6>{posProps.fps.toFixed(0)} FPS</h6>
