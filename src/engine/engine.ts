@@ -334,7 +334,7 @@ class Engine {
             if (time % 10 < 5) {
                 this.smaaActive = true;
             } else {
-                // this.smaaActive = false;
+                this.smaaActive = false;
             }
             if (this.smaaActive) {
                 this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
