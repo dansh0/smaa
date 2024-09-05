@@ -78,7 +78,7 @@ class Engine {
         const canvas = this.canvas;
 
         // Scale to screen size (windows scale)
-        const deviceScaling = true;
+        const deviceScaling = false;
         const deviceScaleRatio = (deviceScaling) ? window.devicePixelRatio : 1; 
         
         // Check Null
@@ -115,7 +115,7 @@ class Engine {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.areaImage);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, this.areaImage);
 
         this.searchTexture = gl.createTexture()
         gl.bindTexture(gl.TEXTURE_2D, this.searchTexture);
@@ -123,7 +123,7 @@ class Engine {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.areaImage);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, this.searchImage);
 
         // const uImage = gl.getUniformLocation(bgndProgram, 'uImage');
         // gl.activeTexture(gl.TEXTURE0);
@@ -322,28 +322,53 @@ class Engine {
         let time = this.getTime()/1000; // update uTime
         let uTime = getUniform(this.packages, 'background', 'uTime');
         uTime.val = time;
-
-        // turn on and off
-        if (time % 10 < 5) {
-            this.smaaActive = true;
-        } else {
-            this.smaaActive = false;
-        }
+        
         let backgroundIndex = this.packages.map(pck => pck.name).indexOf('background');
         let edgeIndex = this.packages.map(pck => pck.name).indexOf('edge');
         let weightsIndex = this.packages.map(pck => pck.name).indexOf('weights');
         let blendIndex = this.packages.map(pck => pck.name).indexOf('blend');
-        if (this.smaaActive) {
-            this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
-            this.packages[edgeIndex].active = true;
-            this.packages[weightsIndex].active = true;
-            this.packages[blendIndex].active = true;
+
+        let debug = false
+        if (!debug) {
+            // turn on and off
+            if (time % 10 < 5) {
+                this.smaaActive = true;
+            } else {
+                // this.smaaActive = false;
+            }
+            if (this.smaaActive) {
+                this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
+                this.packages[edgeIndex].active = true;
+                this.packages[weightsIndex].active = true;
+                this.packages[blendIndex].active = true;
+            } else {
+                this.packages[backgroundIndex].renderTarget = null;
+                this.packages[edgeIndex].active = false;
+                this.packages[weightsIndex].active = false;
+                this.packages[blendIndex].active = false;
+            }
         } else {
-            this.packages[backgroundIndex].renderTarget = null;
-            this.packages[edgeIndex].active = false;
-            this.packages[weightsIndex].active = false;
-            this.packages[blendIndex].active = false;
+            // DEBUG PASSES
+            if (time % 10 < 2) {
+                this.packages[backgroundIndex].renderTarget = null;
+                this.packages[edgeIndex].active = false;
+                this.packages[weightsIndex].active = false;
+                this.packages[blendIndex].active = false;
+            } else if (time % 10 < 4) {
+                this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
+                this.packages[edgeIndex].renderTarget = null;
+                this.packages[edgeIndex].active = true;
+            } else if (time % 10 < 7) {
+                this.packages[edgeIndex].renderTarget = this.edgeRenderTarget;
+                this.packages[weightsIndex].renderTarget = null;
+                this.packages[weightsIndex].active = true;
+            } else {
+                this.packages[weightsIndex].renderTarget = this.weightsRenderTarget;
+                this.packages[blendIndex].renderTarget = null;
+                this.packages[blendIndex].active = true;
+            }
         }
+
             
         
         // Uniform References

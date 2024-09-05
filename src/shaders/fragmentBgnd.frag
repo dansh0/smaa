@@ -10,17 +10,17 @@ void main()
 
     // Center the UV coordinates and apply rotation
     uv -= 0.5;
-    float angle = 3.14159/4. + uTime * 0.001;  // Slow rotation over time
+    float angle = 3.14159/64.;// + uTime * 0.01;  // Slow rotation over time
     uv = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * uv;
     uv += 0.5;
 
     // Adjust grid spacing
-    float spacingX = 0.05 + mod(floor(uv.y * 200.0 + uTime), 10.0) * 0.02;
-    float spacingY = 0.05 + mod(floor(uv.x * 200.0 + uTime), 10.0) * 0.02;
+    float spacingX = 0.05 + mod(floor(uv.y * 20.0), 10.0) * 0.02; // 200
+    float spacingY = 0.05 + mod(floor(uv.x * 20.0), 10.0) * 0.02; // 200
 
     // Calculate the grid lines
-   float lineX = step(0.21, spacingX);
-    float lineY = step(0.21, spacingY);
+   float lineX = step(0.22, spacingX);
+    float lineY = step(0.22, spacingY);
 
     // Combine the horizontal and vertical lines
     float line = lineX + lineY;

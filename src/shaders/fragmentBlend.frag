@@ -51,4 +51,6 @@ void main() {
     }
 
     gl_FragColor = color;
+    //gl_FragColor = color/2. + texture2D(uWeightsTexture, vTexCoord);
+    // gl_FragColor = texture2D(uWeightsTexture, vTexCoord); // DEBUG
 }
