@@ -23,6 +23,17 @@ const WebGLCanvas:React.FC<WGLCanvasProps> = (props) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const engine = useRef<Engine | null>(null);
 
+    // Vite hot load dispose
+    if (import.meta.hot) {
+        import.meta.hot.on('vite:beforeUpdate', () => {
+            console.log('Before update - cleaning up resources');
+            if (engine.current) {
+                engine.current.cleanup();
+            }
+            // cleanupWebGL();
+        });
+    }
+
     // run once on mounted
     useEffect(() => {
         engine.current = new Engine(canvasRef.current!, setFPS);

@@ -1,5 +1,6 @@
 import bgndVertexShader from '../shaders/vertexBgnd.vert';
 import bgndFragmentShader from '../shaders/fragmentBgnd.frag';
+import bgnd3DFragmentShader from '../shaders/fragmentBgnd3D.frag';
 import edgeVertexShader from '../shaders/vertexEdge.vert';
 import edgeFragmentShader from '../shaders/fragmentEdge.frag';
 import weightsVertexShader from '../shaders/vertexWeights.vert';
@@ -10,7 +11,6 @@ import { Dispatch, SetStateAction } from 'react';
 import { setUpProgram, setUniform, setAttributes, getUniform, makeRenderTarget, updateRenderTarget } from './wglUtils';
 import { Vec3, Uniform, Package, RenderTarget } from './types';
 import { getAreaTexture, getSearchTexture } from './SMAAtextures';
-
 
 class Engine {
     canvas: HTMLCanvasElement;
@@ -26,7 +26,8 @@ class Engine {
     startTime: number;
     frameCount: number;
     lastFrameCount: number;
-    lastFrameTime: DOMHighResTimeStamp;
+    lastFPSFrameTime: DOMHighResTimeStamp;
+    lastFrameTime: number = 0;
     setFPS: Dispatch<SetStateAction<number>>;
     renderCount: number;
     areaTexture: WebGLTexture | null = null;
@@ -35,6 +36,10 @@ class Engine {
     searchImage: HTMLImageElement;
     imgLoadCount: number = 0;
     smaaActive: boolean = true;
+    draw2D: boolean = false;
+    rotateSpeed: number = 0.11;
+    rotation: number = 0;
+    animationFrameId: number | null = null;
 
     constructor(canvas: HTMLCanvasElement, setFPS: Dispatch<SetStateAction<number>>) {
         this.packages = [];
@@ -45,7 +50,7 @@ class Engine {
         this.floatVar1 = 0;
         this.floatVar2 = 0;
         this.frameCount = 0;
-        this.lastFrameTime = performance.now();
+        this.lastFPSFrameTime = performance.now();
         this.lastFrameCount = 0;
         this.setFPS = setFPS;
         this.renderCount = 0;
@@ -130,7 +135,7 @@ class Engine {
         // gl.bindTexture(gl.TEXTURE_2D, areaTexture);
         // gl.uniform1i(uImage, 0);
 
-        // BACKGROUND PROGRAM
+        // BACKGROUND PROGRAM 1 - 3D
         let quadPositions = [-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1, ];
         let quadNormals = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ];
         
@@ -150,11 +155,17 @@ class Engine {
                 val: [canvas.width, canvas.height],
                 type: 'vec2',
                 location: null
-            }
+            },
+            {
+                name: 'uRotation',
+                val: 0.5,
+                type: 'float',
+                location: null
+            },
         ];
 
         // Create Program
-        let bgndProgram = setUpProgram(gl, bgndVertexShader, bgndFragmentShader, bgndBuffers, bgndUniforms);
+        let bgndProgram = setUpProgram(gl, bgndVertexShader, bgnd3DFragmentShader, bgndBuffers, bgndUniforms);
 
         // Package Program with Attributes and Uniforms
         let bgndPackage: Package = {
@@ -167,6 +178,49 @@ class Engine {
             renderTarget: this.bgndRenderTarget
         }
         this.packages.push(bgndPackage);
+
+
+        // BACKGROUND PROGRAM 1 - 2D
+
+        // Set up Position Attribute
+        let bgnd2DBuffers = setAttributes(gl, quadPositions, quadNormals);
+
+        // Define Uniforms
+        let bgnd2DUniforms: Uniform[] = [
+            {
+                name: 'uTime',
+                val: this.getTime(),
+                type: 'float',
+                location: null
+            },
+            {
+                name: 'uResolution',
+                val: [canvas.width, canvas.height],
+                type: 'vec2',
+                location: null
+            },
+            {
+                name: 'uRotation',
+                val: 0.5,
+                type: 'float',
+                location: null
+            },
+        ];
+
+        // Create Program
+        let bgnd2DProgram = setUpProgram(gl, bgndVertexShader, bgndFragmentShader, bgnd2DBuffers, bgnd2DUniforms);
+
+        // Package Program with Attributes and Uniforms
+        let bgnd2DPackage: Package = {
+            name: 'background2D',
+            active: true,
+            attribs: bgnd2DBuffers,
+            uniforms: bgnd2DUniforms,
+            program: bgnd2DProgram,
+            hasNormals: false,
+            renderTarget: this.bgndRenderTarget
+        }
+        this.packages.push(bgnd2DPackage);
 
 
         // EDGE PROGRAM
@@ -286,7 +340,7 @@ class Engine {
             if (this.weightsRenderTarget) {
                 updateRenderTarget(gl, this.weightsRenderTarget, canvas.width, canvas.height)
             }
-            let updatePrograms = ['background', 'edge', 'weights', 'blend'];
+            let updatePrograms = ['background', 'background2D', 'edge', 'weights', 'blend'];
             updatePrograms.forEach((programName) => {
                 let uResolution = getUniform(this.packages, programName, 'uResolution');
                 uResolution.val = [canvas.width, canvas.height];
@@ -318,12 +372,18 @@ class Engine {
         if (!this.edgeRenderTarget?.framebuffer) { return; }
         if (!this.weightsRenderTarget?.framebuffer) { return; }
 
-        // update time
+        // update time and speed
         let time = this.getTime()/1000; // update uTime
-        let uTime = getUniform(this.packages, 'background', 'uTime');
-        uTime.val = time;
         
+        this.rotation += (time - this.lastFrameTime) * this.rotateSpeed * 0.1;
+        this.lastFrameTime = time;
+        let uRotation = getUniform(this.packages, 'background', 'uRotation');
+        uRotation.val = this.rotation;
+        uRotation = getUniform(this.packages, 'background2D', 'uRotation');
+        uRotation.val = this.rotation;
+
         let backgroundIndex = this.packages.map(pck => pck.name).indexOf('background');
+        let background2DIndex = this.packages.map(pck => pck.name).indexOf('background2D');
         let edgeIndex = this.packages.map(pck => pck.name).indexOf('edge');
         let weightsIndex = this.packages.map(pck => pck.name).indexOf('weights');
         let blendIndex = this.packages.map(pck => pck.name).indexOf('blend');
@@ -338,11 +398,13 @@ class Engine {
             // }
             if (this.smaaActive) {
                 this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
+                this.packages[background2DIndex].renderTarget = this.bgndRenderTarget;
                 this.packages[edgeIndex].active = true;
                 this.packages[weightsIndex].active = true;
                 this.packages[blendIndex].active = true;
             } else {
                 this.packages[backgroundIndex].renderTarget = null;
+                this.packages[background2DIndex].renderTarget = null;
                 this.packages[edgeIndex].active = false;
                 this.packages[weightsIndex].active = false;
                 this.packages[blendIndex].active = false;
@@ -351,11 +413,13 @@ class Engine {
             // DEBUG PASSES
             if (time % 10 < 2) {
                 this.packages[backgroundIndex].renderTarget = null;
+                this.packages[background2DIndex].renderTarget = null;
                 this.packages[edgeIndex].active = false;
                 this.packages[weightsIndex].active = false;
                 this.packages[blendIndex].active = false;
             } else if (time % 10 < 4) {
                 this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
+                this.packages[background2DIndex].renderTarget = this.bgndRenderTarget;
                 this.packages[edgeIndex].renderTarget = null;
                 this.packages[edgeIndex].active = true;
             } else if (time % 10 < 7) {
@@ -379,12 +443,20 @@ class Engine {
         // let uFloatVar2 = getUniform(this.packages, 'effect', 'uFloatVar2');
         // uFloatVar2.val = this.floatVar2;
      
+        let drawOrder = [];
+        if (this.draw2D) {
+            drawOrder.push(this.packages[background2DIndex]);
+        } else {
+            drawOrder.push(this.packages[backgroundIndex]);
+        }
+        drawOrder.push(...[this.packages[edgeIndex], this.packages[weightsIndex], this.packages[blendIndex]])
+
         // Draw packages
-        for (let iPackage = 0; iPackage < this.packages.length; iPackage++) {
-            this.drawPackage(gl, this.packages[iPackage]);
+        for (let iPackage = 0; iPackage < drawOrder.length; iPackage++) {
+            this.drawPackage(gl, drawOrder[iPackage]);
         }
        
-        requestAnimationFrame(this.animate.bind(this));
+        this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
     }
 
     drawPackage(gl: WebGLRenderingContext, pck: Package): void {
@@ -396,7 +468,7 @@ class Engine {
         gl.useProgram(pck.program);
 
         // Draw to frame buffer instead of canvas
-        gl.bindFramebuffer(gl.FRAMEBUFFER, pck.renderTarget?.framebuffer);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, pck.renderTarget!.framebuffer);
         gl.clearColor(0, 0, 0, 1); 
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.blendFunc(gl.ONE, gl.ZERO);
@@ -419,8 +491,9 @@ class Engine {
         }
 
         // Update Uniforms
-        if (pck.name == 'background') {
+        if (pck.name == 'background' || pck.name == 'background2D') {
             setUniform(gl, getUniform(this.packages, pck.name, 'uTime')); 
+            setUniform(gl, getUniform(this.packages, pck.name, 'uRotation')); 
         }
         else if (pck.name == 'edge') {
             gl.activeTexture(gl.TEXTURE0);
@@ -457,11 +530,13 @@ class Engine {
 
     updatePosition(floatVar1: number, floatVar2: number, vector: Vec3): void {
        this.smaaActive = !!+floatVar1;
+       this.draw2D = !!+floatVar2;
+       this.rotateSpeed = vector.x;
     }
 
     updateFPS(): void {
         let currentTime = performance.now();
-        let deltaTime = currentTime - this.lastFrameTime;
+        let deltaTime = currentTime - this.lastFPSFrameTime;
         let testTime = 1000;
         // only update after a second (or testTime if changed)
         if (deltaTime >= testTime) {
@@ -471,8 +546,16 @@ class Engine {
             this.setFPS(fps);
 
             // reset
-            this.lastFrameTime = currentTime;
+            this.lastFPSFrameTime = currentTime;
             this.lastFrameCount = this.frameCount;
+        }
+    }
+
+    cleanup(): void {
+        // Stop previous loops
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId); // Stop the previous animation frame
+            this.animationFrameId = null;
         }
     }
 }

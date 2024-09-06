@@ -53,4 +53,9 @@ void main() {
     gl_FragColor = color;
     //gl_FragColor = color/2. + texture2D(uWeightsTexture, vTexCoord);
     // gl_FragColor = texture2D(uWeightsTexture, vTexCoord); // DEBUG
+
+    gl_FragColor = 
+        (1.0-step(0.499, vTexCoord.x)) * texture2D(uRenderTexture, vTexCoord) +
+        step(0.501, vTexCoord.x) * color - 
+        (step(0.501, vTexCoord.x) - step(0.499, vTexCoord.x)) * vec4(0.75, 0.0, 0.0, 1.0);
 }

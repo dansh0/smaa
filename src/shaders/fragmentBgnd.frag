@@ -1,7 +1,6 @@
 precision mediump float;
 uniform vec2 uResolution;
-uniform float uTime;
-// uniform sampler2D uImage;
+uniform float uRotation;
 
 void main()
 {
@@ -10,7 +9,7 @@ void main()
 
     // Center the UV coordinates and apply rotation
     uv -= 0.5;
-    float angle = 3.14159/64. + uTime * 0.01;  // Slow rotation over time
+    float angle = 3.14159/64. + uRotation;  // Slow rotation over time
     uv = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * uv;
     uv += 0.5;
 

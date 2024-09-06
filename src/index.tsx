@@ -11,7 +11,7 @@ interface Vec3 {
 export default function Home() {
   const [vector, setVector] = useState<Vec3>({ x: 0.5, y: 0.5, z: 0.5 });
   const [floatVar1, setFloatVar1] = useState<number>(1);
-  const [floatVar2, setFloatVar2] = useState<number>(50);
+  const [floatVar2, setFloatVar2] = useState<number>(0);
   const [fps, setFPS] = useState<number>(0);
 
   const posProps = {

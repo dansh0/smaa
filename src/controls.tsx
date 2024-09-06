@@ -93,6 +93,18 @@ const Controls: React.FC<ControlsProps> = (props) => {
                     />
                 </div> */}
                 <div className="control">
+                    <label>Rotate Speed: {posProps.vector.x}</label>
+                    <input
+                        type="range"
+                        id="x-axis"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={posProps.vector.x}
+                        onChange={handleSliderChange('x')}
+                    />
+                </div>
+                <div className="control">
                     <label>
                         SMAA Active
                     </label>
@@ -105,14 +117,27 @@ const Controls: React.FC<ControlsProps> = (props) => {
                         }}
                     />
                 </div>
+                <div className="control">
+                    <label>
+                        Scene: {posProps.floatVar2 === 1 ? "2D" : "3D"}
+                    </label>
+                    <input
+                        type="checkbox"
+                        id="floatVar2"
+                        checked={posProps.floatVar2 === 1}
+                        onChange={() => {
+                        posProps.setFloatVar2(posProps.floatVar2 === 1 ? 0 : 1);
+                        }}
+                    />
+                </div>
                 {/* <div className="control">
-                    <label>Var 2: {posProps.floatVar2}</label>
+                    <label>Rotate Speed: {posProps.floatVar2}</label>
                     <input
                         type="range"
                         id="floatVar2"
                         min="0"
-                        max="100"
-                        step="5"
+                        max="1"
+                        step="0.1"
                         value={posProps.floatVar2}
                         onChange={
                             (event) => { posProps.setFloatVar2(parseFloat(event.target.value)); }
