@@ -1,25 +1,17 @@
+import { Dispatch, SetStateAction } from 'react';
 import bgndVertexShader from '../shaders/vertexBgnd.vert';
 import bgndFragmentShader from '../shaders/fragmentBgnd.frag';
 import bgnd3DFragmentShader from '../shaders/fragmentBgnd3D.frag';
-import edgeVertexShader from '../shaders/vertexEdge.vert';
-import edgeFragmentShader from '../shaders/fragmentEdge.frag';
-import weightsVertexShader from '../shaders/vertexWeights.vert';
-import weightsFragmentShader from '../shaders/fragmentWeights.frag';
-import blendVertexShader from '../shaders/vertexBlend.vert';
-import blendFragmentShader from '../shaders/fragmentBlend.frag';
-import { Dispatch, SetStateAction } from 'react';
 import { setUpProgram, setUniform, setAttributes, getUniform, makeRenderTarget, updateRenderTarget } from './wglUtils';
 import { Vec3, Uniform, Package, RenderTarget } from './types';
-import { getAreaTexture, getSearchTexture } from './SMAAtextures';
+import SMAA from './SMAA/SMAA';
 
 class Engine {
     canvas: HTMLCanvasElement;
-    // gl: WebGLRenderingContext | null;
-    gl: any;
+    gl: WebGLRenderingContext | WebGL2RenderingContext | null;
     bgndRenderTarget: RenderTarget | null = null;
-    edgeRenderTarget: RenderTarget | null = null;
-    weightsRenderTarget: RenderTarget | null = null;
     packages: Package[];
+    smaa: SMAA | null = null;
     vector: Vec3;
     floatVar1: number;
     floatVar2: number;
@@ -30,17 +22,12 @@ class Engine {
     lastFrameTime: number = 0;
     setFPS: Dispatch<SetStateAction<number>>;
     renderCount: number;
-    areaTexture: WebGLTexture | null = null;
-    searchTexture: WebGLTexture | null = null;
-    areaImage: HTMLImageElement;
-    searchImage: HTMLImageElement;
-    imgLoadCount: number = 0;
     smaaActive: boolean = true;
     draw2D: boolean = false;
     rotateSpeed: number = 0.11;
     rotation: number = 0;
     animationFrameId: number | null = null;
-
+    
     constructor(canvas: HTMLCanvasElement, setFPS: Dispatch<SetStateAction<number>>) {
         this.packages = [];
         this.startTime = Date.now();
@@ -54,27 +41,7 @@ class Engine {
         this.lastFrameCount = 0;
         this.setFPS = setFPS;
         this.renderCount = 0;
-
-        // Load images to start
-        this.areaImage = new Image();
-        this.areaImage.src = getAreaTexture();
-        this.areaImage.onload = () => {
-            this.imagesLoaded();
-        }
-        this.searchImage = new Image();
-        this.searchImage.src = getSearchTexture();
-        this.searchImage.onload = () => {
-            this.imagesLoaded();
-        }
-    }
-
-    imagesLoaded(): void {
-        this.imgLoadCount++;
-        if (this.imgLoadCount == 2) {
-            // start
-            this.init();
-        } 
-        // else wait for other images
+        this.init();
     }
 
     init(): void {
@@ -110,30 +77,6 @@ class Engine {
 
         // Init render targets to draw to until the final pass
         this.bgndRenderTarget = makeRenderTarget(gl, canvas.width, canvas.height);
-        this.edgeRenderTarget = makeRenderTarget(gl, canvas.width, canvas.height);
-        this.weightsRenderTarget = makeRenderTarget(gl, canvas.width, canvas.height);
-
-        // Textures
-        this.areaTexture = gl.createTexture()
-        gl.bindTexture(gl.TEXTURE_2D, this.areaTexture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, this.areaImage);
-
-        this.searchTexture = gl.createTexture()
-        gl.bindTexture(gl.TEXTURE_2D, this.searchTexture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, this.searchImage);
-
-        // const uImage = gl.getUniformLocation(bgndProgram, 'uImage');
-        // gl.activeTexture(gl.TEXTURE0);
-        // gl.bindTexture(gl.TEXTURE_2D, areaTexture);
-        // gl.uniform1i(uImage, 0);
 
         // BACKGROUND PROGRAM 1 - 3D
         let quadPositions = [-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1, ];
@@ -222,104 +165,8 @@ class Engine {
         }
         this.packages.push(bgnd2DPackage);
 
-
-        // EDGE PROGRAM
-     
-        // Set up Position Attribute
-        let edgeBuffers = setAttributes(gl, quadPositions, quadNormals);
-
-        // Define Uniforms
-        let edgeUniforms: Uniform[] = [
-            {
-                name: 'uResolution',
-                val: [canvas.width, canvas.height],
-                type: 'vec2',
-                location: null
-            }
-        ];
-
-        // Create Program
-        let edgeProgram = setUpProgram(gl, edgeVertexShader, edgeFragmentShader, edgeBuffers, edgeUniforms);
-
-        // Package Program with Attributes and Uniforms
-        let edgePackage: Package = {
-            name: 'edge',
-            active: true,
-            attribs: edgeBuffers,
-            uniforms: edgeUniforms,
-            program: edgeProgram,
-            hasNormals: false,
-            renderTarget: this.edgeRenderTarget
-        }
-        this.packages.push(edgePackage);
-
-         // WEIGHTS PROGRAM
-     
-        // Set up Position Attribute
-        let weightsBuffers = setAttributes(gl, quadPositions, quadNormals);
-
-        // Define Uniforms
-        let weightsUniforms: Uniform[] = [
-            {
-                name: 'uResolution',
-                val: [canvas.width, canvas.height],
-                type: 'vec2',
-                location: null
-            }
-        ];
-
-        // Create Program
-        let weightsProgram = setUpProgram(gl, weightsVertexShader, weightsFragmentShader, weightsBuffers, weightsUniforms);
-
-        // Package Program with Attributes and Uniforms
-        let weightsPackage: Package = {
-            name: 'weights',
-            active: true,
-            attribs: weightsBuffers,
-            uniforms: weightsUniforms,
-            program: weightsProgram,
-            hasNormals: false,
-            renderTarget: this.weightsRenderTarget
-        }
-        this.packages.push(weightsPackage);
-
-         // BLEND PROGRAM
-     
-        // Set up Position Attribute
-        let blendBuffers = setAttributes(gl, quadPositions, quadNormals);
-
-        // Define Uniforms
-        let blendUniforms: Uniform[] = [
-            {
-                name: 'uTime',
-                val: this.getTime(),
-                type: 'float',
-                location: null
-            },
-            {
-                name: 'uResolution',
-                val: [canvas.width, canvas.height],
-                type: 'vec2',
-                location: null
-            }
-        ];
-
-        // Create Program
-        let blendProgram = setUpProgram(gl, blendVertexShader, blendFragmentShader, blendBuffers, blendUniforms);
-
-        // Package Program with Attributes and Uniforms
-        let blendPackage: Package = {
-            name: 'blend',
-            active: true,
-            attribs: blendBuffers,
-            uniforms: blendUniforms,
-            program: blendProgram,
-            hasNormals: false,
-            renderTarget: null
-        }
-        this.packages.push(blendPackage);
-
-        
+        // Init the SMAA Post-Processing
+        this.smaa = new SMAA(gl, canvas.width, canvas.height, this.bgndRenderTarget, null);
 
         // function to resize window properly
         const resizeWindow = () => {
@@ -334,20 +181,17 @@ class Engine {
             if (this.bgndRenderTarget) {
                 updateRenderTarget(gl, this.bgndRenderTarget, canvas.width, canvas.height)
             }
-            if (this.edgeRenderTarget) {
-                updateRenderTarget(gl, this.edgeRenderTarget, canvas.width, canvas.height)
-            }
-            if (this.weightsRenderTarget) {
-                updateRenderTarget(gl, this.weightsRenderTarget, canvas.width, canvas.height)
-            }
-            let updatePrograms = ['background', 'background2D', 'edge', 'weights', 'blend'];
+            let updatePrograms = ['background', 'background2D'];
             updatePrograms.forEach((programName) => {
                 let uResolution = getUniform(this.packages, programName, 'uResolution');
                 uResolution.val = [canvas.width, canvas.height];
                 let packageIndex = this.packages.map(pck => pck.name).indexOf(programName);
                 gl.useProgram(this.packages[packageIndex].program);
-                setUniform(this.gl, uResolution);
+                setUniform(gl, uResolution);
             });
+            if (this.smaa) {
+                this.smaa.resizeWindow(canvas.width, canvas.height);
+            }
         }
 
         // Run resize immediately after init and anytime a resize event triggers
@@ -366,11 +210,10 @@ class Engine {
         this.renderCount = 0; // reset number of renders per animate frame
 
         if (!this.gl) { throw Error('Lost WebGL Render Context') }
-        const gl: WebGLRenderingContext = this.gl;
+        const gl: WebGLRenderingContext | WebGL2RenderingContext = this.gl;
 
         if (!this.bgndRenderTarget?.framebuffer) { return; }
-        if (!this.edgeRenderTarget?.framebuffer) { return; }
-        if (!this.weightsRenderTarget?.framebuffer) { return; }
+        if (!this.smaa) { return; }
 
         // update time and speed
         let time = this.getTime()/1000; // update uTime
@@ -384,82 +227,31 @@ class Engine {
 
         let backgroundIndex = this.packages.map(pck => pck.name).indexOf('background');
         let background2DIndex = this.packages.map(pck => pck.name).indexOf('background2D');
-        let edgeIndex = this.packages.map(pck => pck.name).indexOf('edge');
-        let weightsIndex = this.packages.map(pck => pck.name).indexOf('weights');
-        let blendIndex = this.packages.map(pck => pck.name).indexOf('blend');
 
-        let debug = false
-        if (!debug) {
-            // turn on and off
-            // if (time % 10 < 5) {
-            //     this.smaaActive = true;
-            // } else {
-            //     this.smaaActive = false;
-            // }
-            if (this.smaaActive) {
-                this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
-                this.packages[background2DIndex].renderTarget = this.bgndRenderTarget;
-                this.packages[edgeIndex].active = true;
-                this.packages[weightsIndex].active = true;
-                this.packages[blendIndex].active = true;
-            } else {
-                this.packages[backgroundIndex].renderTarget = null;
-                this.packages[background2DIndex].renderTarget = null;
-                this.packages[edgeIndex].active = false;
-                this.packages[weightsIndex].active = false;
-                this.packages[blendIndex].active = false;
-            }
+        if (this.smaaActive) {
+            this.smaa.setActive(true);
+            this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
+            this.packages[background2DIndex].renderTarget = this.bgndRenderTarget;
         } else {
-            // DEBUG PASSES
-            if (time % 10 < 2) {
-                this.packages[backgroundIndex].renderTarget = null;
-                this.packages[background2DIndex].renderTarget = null;
-                this.packages[edgeIndex].active = false;
-                this.packages[weightsIndex].active = false;
-                this.packages[blendIndex].active = false;
-            } else if (time % 10 < 4) {
-                this.packages[backgroundIndex].renderTarget = this.bgndRenderTarget;
-                this.packages[background2DIndex].renderTarget = this.bgndRenderTarget;
-                this.packages[edgeIndex].renderTarget = null;
-                this.packages[edgeIndex].active = true;
-            } else if (time % 10 < 7) {
-                this.packages[edgeIndex].renderTarget = this.edgeRenderTarget;
-                this.packages[weightsIndex].renderTarget = null;
-                this.packages[weightsIndex].active = true;
-            } else {
-                this.packages[weightsIndex].renderTarget = this.weightsRenderTarget;
-                this.packages[blendIndex].renderTarget = null;
-                this.packages[blendIndex].active = true;
-            }
+            this.smaa.setActive(false);
+            this.packages[backgroundIndex].renderTarget = null;
+            this.packages[background2DIndex].renderTarget = null;
         }
-
-            
-        
-        // Uniform References
-        // let uVector = getUniform(this.packages, 'effect', 'uVector');
-        // uVector.val = [this.vector.x, this.vector.y, this.vector.z];
-        // let uFloatVar1 = getUniform(this.packages, 'effect', 'uFloatVar1');
-        // uFloatVar1.val = this.floatVar1;
-        // let uFloatVar2 = getUniform(this.packages, 'effect', 'uFloatVar2');
-        // uFloatVar2.val = this.floatVar2;
-     
-        let drawOrder = [];
+      
+        // Draw scene
         if (this.draw2D) {
-            drawOrder.push(this.packages[background2DIndex]);
+            this.drawPackage(gl, this.packages[background2DIndex]);
         } else {
-            drawOrder.push(this.packages[backgroundIndex]);
+            this.drawPackage(gl, this.packages[backgroundIndex]);
         }
-        drawOrder.push(...[this.packages[edgeIndex], this.packages[weightsIndex], this.packages[blendIndex]])
-
-        // Draw packages
-        for (let iPackage = 0; iPackage < drawOrder.length; iPackage++) {
-            this.drawPackage(gl, drawOrder[iPackage]);
-        }
+        
+        // Run Post-Processing SMAA
+        this.smaa.render();
        
         this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
     }
 
-    drawPackage(gl: WebGLRenderingContext, pck: Package): void {
+    drawPackage(gl: WebGLRenderingContext | WebGL2RenderingContext, pck: Package): void {
         if (!pck.active) { return }
 
         this.renderCount++;
@@ -467,8 +259,14 @@ class Engine {
         // Set Program
         gl.useProgram(pck.program);
 
-        // Draw to frame buffer instead of canvas
-        gl.bindFramebuffer(gl.FRAMEBUFFER, pck.renderTarget!.framebuffer);
+        // Draw to frame buffer instead of canvas, unless it's the last frame
+        if (pck.renderTarget) {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, pck.renderTarget.framebuffer);
+        } else {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
+
+        // Clear
         gl.clearColor(0, 0, 0, 1); 
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.blendFunc(gl.ONE, gl.ZERO);
@@ -494,30 +292,6 @@ class Engine {
         if (pck.name == 'background' || pck.name == 'background2D') {
             setUniform(gl, getUniform(this.packages, pck.name, 'uTime')); 
             setUniform(gl, getUniform(this.packages, pck.name, 'uRotation')); 
-        }
-        else if (pck.name == 'edge') {
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.bgndRenderTarget!.texture);
-            gl.uniform1i(gl.getUniformLocation(pck.program, "uRenderTexture"), 0);
-        } else if (pck.name == 'weights') {
-            const uAreaTexture = gl.getUniformLocation(pck.program, 'uAreaTexture');
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.areaTexture);
-            gl.uniform1i(uAreaTexture, 0);
-            const uSearchTexture = gl.getUniformLocation(pck.program, 'uSearchTexture');
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, this.searchTexture);
-            gl.uniform1i(uSearchTexture, 1);
-            gl.activeTexture(gl.TEXTURE2);
-            gl.bindTexture(gl.TEXTURE_2D, this.edgeRenderTarget!.texture);
-            gl.uniform1i(gl.getUniformLocation(pck.program, "uEdgeTexture"), 2);
-        } else if (pck.name == 'blend') {
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.weightsRenderTarget!.texture);
-            gl.uniform1i(gl.getUniformLocation(pck.program, "uWeightsTexture"), 0);
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, this.bgndRenderTarget!.texture);
-            gl.uniform1i(gl.getUniformLocation(pck.program, "uRenderTexture"), 1);
         }
 
         // Draw

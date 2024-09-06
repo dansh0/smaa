@@ -1,6 +1,6 @@
 import { AttribBuffers, Uniform, Package, RenderTarget } from './types';
 
-export const setUpProgram = (gl: WebGLRenderingContext, vertexShader: string, fragmentShader: string, buffers: AttribBuffers, uniforms: Uniform[]): WebGLProgram => {
+export const setUpProgram = (gl: WebGLRenderingContext | WebGL2RenderingContext, vertexShader: string, fragmentShader: string, buffers: AttribBuffers, uniforms: Uniform[]): WebGLProgram => {
     // Sets a WebGL program based on attribute, uniform, and shader data
 
     // Compile the vertex shader
@@ -43,7 +43,7 @@ export const setUpProgram = (gl: WebGLRenderingContext, vertexShader: string, fr
     return program
 }
 
-export const setUniform = (gl: WebGLRenderingContext, uniform: Uniform): void => {
+export const setUniform = (gl: WebGLRenderingContext | WebGL2RenderingContext, uniform: Uniform): void => {
     // Sets a WebGL uniform based on type
     switch (uniform.type) {
         case 'float':
@@ -67,7 +67,7 @@ export const setUniform = (gl: WebGLRenderingContext, uniform: Uniform): void =>
     }
 }
 
-export const setAttributes = (gl: WebGLRenderingContext, positions: number[], normals: number[]): AttribBuffers => {
+export const setAttributes = (gl: WebGLRenderingContext | WebGL2RenderingContext, positions: number[], normals: number[]): AttribBuffers => {
     // Set up attributes and metadata
     
     let attribs: AttribBuffers = {
@@ -98,7 +98,7 @@ export const setAttributes = (gl: WebGLRenderingContext, positions: number[], no
     return attribs
 }
 
-export const updateAttributes = (gl: WebGLRenderingContext, attribs: AttribBuffers, positions: number[], normals: number[]) => {
+export const updateAttributes = (gl: WebGLRenderingContext | WebGL2RenderingContext, attribs: AttribBuffers, positions: number[], normals: number[]) => {
     // Update attributes and metadata
     // attribs must be of type returned from setAttributes
     
@@ -126,7 +126,7 @@ export const getUniform = (packages: Package[], packageName: string, uniformName
     return packages[pckIndex].uniforms[uniIndex];
 }
 
-export const makeTexture = (gl: WebGLRenderingContext, width: number, height: number, level: number = 0, data: ArrayBufferView | null = null, format: number = gl.RGBA, type: number = gl.UNSIGNED_BYTE, scaling: number = gl.LINEAR, wrap: number = gl.CLAMP_TO_EDGE): WebGLTexture => {
+export const makeTexture = (gl: WebGLRenderingContext | WebGL2RenderingContext, width: number, height: number, level: number = 0, data: ArrayBufferView | null = null, format: number = gl.RGBA, type: number = gl.UNSIGNED_BYTE, scaling: number = gl.LINEAR, wrap: number = gl.CLAMP_TO_EDGE): WebGLTexture => {
     // makes a texture and performs bindings
     if (data == null && format == gl.RGBA) {
       // make empty buffer
@@ -147,7 +147,7 @@ export const makeTexture = (gl: WebGLRenderingContext, width: number, height: nu
     return texture;
 }
   
-export const makeRenderTarget = (gl: WebGLRenderingContext, width: number, height: number, level: number = 0, attachPoint: number = gl.COLOR_ATTACHMENT0, data: ArrayBufferView | null = null, format: number = gl.RGBA, type: number = gl.UNSIGNED_BYTE, scaling: number = gl.LINEAR, wrap: number = gl.CLAMP_TO_EDGE): RenderTarget => {
+export const makeRenderTarget = (gl: WebGLRenderingContext | WebGL2RenderingContext, width: number, height: number, level: number = 0, attachPoint: number = gl.COLOR_ATTACHMENT0, data: ArrayBufferView | null = null, format: number = gl.RGBA, type: number = gl.UNSIGNED_BYTE, scaling: number = gl.LINEAR, wrap: number = gl.CLAMP_TO_EDGE): RenderTarget => {
     // Render Targets are useful ways to render to a texture directly without rendering to canvas
     
     // Make a texture
@@ -177,7 +177,7 @@ export const makeRenderTarget = (gl: WebGLRenderingContext, width: number, heigh
   
 }
   
-export const updateRenderTarget = (gl: WebGLRenderingContext, renderTarget: RenderTarget, width: number, height: number, level: number = 0, attachPoint: number = gl.COLOR_ATTACHMENT0, data: ArrayBufferView | null = null, format: number = gl.RGBA, type: number = gl.UNSIGNED_BYTE, scaling: number = gl.LINEAR, wrap: number = gl.CLAMP_TO_EDGE) => {
+export const updateRenderTarget = (gl: WebGLRenderingContext | WebGL2RenderingContext, renderTarget: RenderTarget, width: number, height: number, level: number = 0, attachPoint: number = gl.COLOR_ATTACHMENT0, data: ArrayBufferView | null = null, format: number = gl.RGBA, type: number = gl.UNSIGNED_BYTE, scaling: number = gl.LINEAR, wrap: number = gl.CLAMP_TO_EDGE) => {
     // Updates the render target, allowing for size or other changes
     renderTarget.texture = makeTexture(gl, width, height, level, data, format, type, scaling, wrap);
     gl.bindFramebuffer(gl.FRAMEBUFFER, renderTarget.framebuffer);
@@ -187,7 +187,7 @@ export const updateRenderTarget = (gl: WebGLRenderingContext, renderTarget: Rend
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, renderTarget.stencilBuffer);
 }
 
-export const getGLState = (gl: WebGLRenderingContext) => {
+export const getGLState = (gl: WebGLRenderingContext | WebGL2RenderingContext) => {
     return {
         currentProgram: gl.getParameter(gl.CURRENT_PROGRAM),
         currentBlendSrc: gl.getParameter(gl.BLEND_SRC_RGB),
@@ -206,7 +206,7 @@ export const getGLState = (gl: WebGLRenderingContext) => {
     }
 }
   
-export const setGLState = (gl: WebGLRenderingContext, glState: any) => {
+export const setGLState = (gl: WebGLRenderingContext | WebGL2RenderingContext, glState: any) => {
     gl.useProgram(glState.currentProgram);
     gl.bindBuffer(gl.ARRAY_BUFFER, glState.currentArrayBuffer);
     gl.blendFunc(glState.currentBlendSrc, glState.currentBlendDst);
