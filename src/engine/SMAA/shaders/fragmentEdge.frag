@@ -1,9 +1,9 @@
 precision highp float;
 
-#define SMAA_THRESHOLD 0.1
-#define SMAA_LOCAL_CONTRAST_ADAPTATION_FACTOR 2.0
 
 uniform sampler2D uRenderTex;
+uniform float uThreshold;
+uniform float uContrastFactor;
 
 varying vec2 vTexCoord;
 varying vec4 vOffset[3];
@@ -16,40 +16,36 @@ float calcColDelta(vec3 col, vec2 offset) {
 }
 
 void main() {
-    // Set threshold
-    vec2 threshold = vec2(SMAA_THRESHOLD);
 
-    // Calculate color deltas
+    // Get the base color at fragment position
     vec4 delta;
     vec3 col = texture2D(uRenderTex, vTexCoord).rgb;
 
-    // Calculate left and top color deltas
+    // Get the color deltas for the left and top positions
     delta.x = calcColDelta(col, vOffset[0].xy);
     delta.y = calcColDelta(col, vOffset[0].zw);
 
-    // Threshold check to leave when no edge
-    vec2 edges = step(threshold, delta.xy);
-    if (dot(edges, vec2(1.0, 1.0)) == 0.0) {
-        discard;
-    }
+    // Threshold check to leave when there is no edge
+    vec2 edges = step(uThreshold, delta.xy);
+    if (dot(edges, vec2(1.0, 1.0)) == 0.0) { discard; }
 
-    // Calculate right and bottom deltas
+    // Get the color deltas for the right and bottom positions
     delta.z = calcColDelta(col, vOffset[1].xy);
     delta.w = calcColDelta(col, vOffset[1].zw);
 
-    // Calculate the maximum delta of the direct neighborhood
+    // Get the max color delta of these four positions
     vec2 maxDelta = max(delta.xy, delta.zw);
 
-    // Calculate left-left and top-top deltas
+    // Get the color deltas for the pixels next positions further left and top
     delta.z = calcColDelta(col, vOffset[2].xy);
     delta.w = calcColDelta(col, vOffset[2].zw);
 
-    // Calculate the final maximum delta
+    // Get the max color delta from all of these
     maxDelta = max(maxDelta.xy, delta.zw);
     float finalDelta = max(maxDelta.x, maxDelta.y);
 
-    // Local contrast adaptation
-    edges.xy *= step(finalDelta, SMAA_LOCAL_CONTRAST_ADAPTATION_FACTOR * delta.xy);
+    // Adjust for local contrast
+    edges.xy *= step(finalDelta, uContrastFactor * delta.xy);
 
     gl_FragColor = vec4(edges, 0.0, 1.0);
 }

@@ -50,6 +50,10 @@ export const setUniform = (gl: WebGLRenderingContext | WebGL2RenderingContext, u
             if (typeof uniform.val != 'number') { throw Error('float assigned to non-float value'); }
             gl.uniform1f(uniform.location, uniform.val);
             break;
+        case 'int':
+            if (typeof uniform.val != 'number' || uniform.val % 1 != 0) { throw Error('int assigned to non-int value'); }
+            gl.uniform1i(uniform.location, uniform.val);
+            break;
         case 'vec2':
             if (typeof uniform.val == 'number' || uniform.val.length != 2 ) { throw Error('vec2 assigned to non-vec2 value'); }
             gl.uniform2f(uniform.location, uniform.val[0], uniform.val[1]);

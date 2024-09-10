@@ -1,3 +1,19 @@
+/*
+WebGL implementation of the SMAA anti-aliasing technique
+Shaders are ported from https://github.com/dmnsgn/glsl-smaa
+JS code is heavily referencing https://github.com/mrdoob/three.js/blob/dev/examples/jsm/postprocessing/SMAAPass.js
+Original SMAA code: https://github.com/iryoku/smaa
+License as copied from iryoku/smaa repo:
+Copyright © 2013 Jorge Jimenez (jorge@iryoku.com)
+Copyright © 2013 Jose I. Echevarria (joseignacioechevarria@gmail.com)
+Copyright © 2013 Belen Masia (bmasia@unizar.es)
+Copyright © 2013 Fernando Navarro (fernandn@microsoft.com)
+Copyright © 2013 Diego Gutierrez (diegog@unizar.es)
+Permission is hereby granted, free of charge, to any person obtaining a copy this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. As clarification, there is no requirement that the copyright notice and permission be included in binary distributions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 import edgeVertexShader from './shaders/vertexEdge.vert';
 import edgeFragmentShader from './shaders/fragmentEdge.frag';
 import weightsVertexShader from './shaders/vertexWeights.vert';
@@ -6,7 +22,7 @@ import blendVertexShader from './shaders/vertexBlend.vert';
 import blendFragmentShader from './shaders/fragmentBlend.frag';
 import { getAreaTexture, getSearchTexture } from './SMAAtextures';
 import { setUpProgram, setUniform, setAttributes, getUniform, makeRenderTarget, updateRenderTarget } from '../wglUtils';
-import { Vec3, Uniform, Package, RenderTarget } from '../types';
+import { Uniform, Package, RenderTarget } from '../types';
 
 class SMAA {
     gl: WebGLRenderingContext | WebGL2RenderingContext;
@@ -24,7 +40,7 @@ class SMAA {
     searchImage: HTMLImageElement;
     imgLoadCount: number = 0;
 
-    constructor(gl: WebGLRenderingContext, width: number, height: number, readTarget: RenderTarget, writeTarget: RenderTarget) {
+    constructor(gl: WebGLRenderingContext, width: number, height: number, readTarget: RenderTarget, writeTarget: RenderTarget | null) {
         this.gl = gl;
         this.width = width;
         this.height = height;
@@ -94,6 +110,18 @@ class SMAA {
                 val: [this.width, this.height],
                 type: 'vec2',
                 location: null
+            },
+            {
+                name: 'uThreshold',
+                val: 0.1,
+                type: 'float',
+                location: null
+            },
+            {
+                name: 'uContrastFactor',
+                val: 2.0,
+                type: 'float',
+                location: null
             }
         ];
 
@@ -155,6 +183,12 @@ class SMAA {
                 name: 'uResolution',
                 val: [this.width, this.height],
                 type: 'vec2',
+                location: null
+            }, 
+            {
+                name: 'uLinePosition',
+                val: 0.5,
+                type: 'float',
                 location: null
             }
         ];
