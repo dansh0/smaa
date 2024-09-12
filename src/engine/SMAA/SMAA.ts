@@ -153,6 +153,12 @@ class SMAA {
                 val: [this.width, this.height],
                 type: 'vec2',
                 location: null
+            },
+            {
+                name: 'uSearchSteps',
+                val: 16,
+                type: 'int',
+                location: null
             }
         ];
 

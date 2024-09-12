@@ -4,8 +4,7 @@
 precision highp float;
 precision highp int;
 
-#define MAX_SEARCH_STEPS 8
-
+#define MAX_SEARCH_STEPS 32
 #define AREATEX_MAX_DISTANCE 16
 #define AREATEX_PIXEL_SIZE (1.0 / vec2(160.0, 560.0))
 #define AREATEX_SUBTEX_SIZE (1.0 / 7.0)
@@ -15,6 +14,7 @@ precision highp int;
 #define mad(a, b, c) (a * b + c)
 
 uniform vec2 uResolution;
+uniform int uSearchSteps;
 uniform sampler2D uEdgeTexture;
 uniform sampler2D uAreaTexture;
 uniform sampler2D uSearchTexture;
@@ -48,7 +48,8 @@ float SMAASearchLength(sampler2D uSearchTexture, vec2 e, float offset) {
 // Search functions in all directions using offset texcoords to fetch edges and determine which are active
 float SMAASearchXLeft(sampler2D uEdgeTexture, sampler2D uSearchTexture, vec2 texcoord, float end) {
     vec2 e = vec2(0.0, 1.0);
-    for (int i = 0; i < MAX_SEARCH_STEPS; i++) {
+    for (int i = 0; i < MAX_SEARCH_STEPS; i++) { 
+        if (i >= uSearchSteps) break;
         if (!(texcoord.x > end && e.g > 0.8281 && e.r == 0.0)) break;
         e = texture2D(uEdgeTexture, texcoord).rg;
         texcoord = mad(-vec2(2.0, 0.0), INVRES.xy, texcoord);
@@ -61,6 +62,7 @@ float SMAASearchXLeft(sampler2D uEdgeTexture, sampler2D uSearchTexture, vec2 tex
 float SMAASearchXRight(sampler2D uEdgeTexture, sampler2D uSearchTexture, vec2 texcoord, float end) {
     vec2 e = vec2(0.0, 1.0);
     for (int i = 0; i < MAX_SEARCH_STEPS; i++) { 
+        if (i >= uSearchSteps) break;
         if (!(texcoord.x < end && e.g > 0.8281 && e.r == 0.0)) break;
         e = texture2D(uEdgeTexture, texcoord).rg;
         texcoord = mad(vec2(2.0, 0.0), INVRES.xy, texcoord);
@@ -72,6 +74,7 @@ float SMAASearchXRight(sampler2D uEdgeTexture, sampler2D uSearchTexture, vec2 te
 float SMAASearchYUp(sampler2D uEdgeTexture, sampler2D uSearchTexture, vec2 texcoord, float end) {
     vec2 e = vec2(1.0, 0.0);
     for (int i = 0; i < MAX_SEARCH_STEPS; i++) { 
+        if (i >= uSearchSteps) break;
         if (!(texcoord.y > end && e.r > 0.8281 && e.g == 0.0)) break;
         e = texture2D(uEdgeTexture, texcoord).rg;
         texcoord = mad(-vec2(0.0, 2.0), INVRES.xy, texcoord);
@@ -83,6 +86,7 @@ float SMAASearchYUp(sampler2D uEdgeTexture, sampler2D uSearchTexture, vec2 texco
 float SMAASearchYDown(sampler2D uEdgeTexture, sampler2D uSearchTexture, vec2 texcoord, float end) {
     vec2 e = vec2(1.0, 0.0);
     for (int i = 0; i < MAX_SEARCH_STEPS; i++) { 
+        if (i >= uSearchSteps) break;
         if (!(texcoord.y < end && e.r > 0.8281 && e.g == 0.0)) break;
         e = texture2D(uEdgeTexture, texcoord).rg;
         texcoord = mad(vec2(0.0, 2.0), INVRES.xy, texcoord);
